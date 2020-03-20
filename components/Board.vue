@@ -1,27 +1,36 @@
 <template>
   <div class="columns board-player" v-if="player">
     <div class="column is-one-fifth">
-      <vs-chip>
-        <vs-avatar />
-        {{ player.name }}
-      </vs-chip>
+      <div @contextmenu.prevent="$refs.boardMenu.open" >
+        <vs-chip>
+          <vs-avatar />
+          {{ player.name }}
+        </vs-chip>
+      </div>
     </div>
     <div class="column">
       <swiper ref="mySwiper" :options="swiperOptions">
         <template v-for="card in cards">
           <swiper-slide>
-            <img @contextmenu.prevent="$refs.menu.open($event, { card: card })" class="game-card" :src="`/${card.name}.jpg`" />
+            <img @contextmenu.prevent="$refs.cardMenu.open($event, { card: card })" class="game-card" :src="`/${card.name}.jpg`" />
           </swiper-slide>
         </template>
       </swiper>
     </div>
-    <vue-context ref="menu">
+    <vue-context ref="cardMenu">
       <template slot-scope="child" v-if="child.data">
         <li>
           <vs-button :disabled="userBoardId != board.id" color="primary" type="flat"icon="keyboard_arrow_left" @click.prevent="retrieveCard(child.data.card)">Recuperer {{ child.data.card.name }}</vs-button>
         </li>
         <li>
           <vs-button :disabled="userBoardId != board.id" color="danger" type="flat" icon="delete" @click.prevent="throwCard(child.data.card)">Defausser {{ child.data.card.name }}</vs-button>
+        </li>
+      </template>
+    </vue-context>
+    <vue-context ref="boardMenu">
+      <template slot-scope="child">
+        <li>
+          <vs-button :disabled="userBoardId != board.id" color="danger" type="flat" icon="delete" @click.prevent="throwCards()">Defausser toutes les cartes</vs-button>
         </li>
       </template>
     </vue-context>
@@ -57,9 +66,20 @@ export default {
   mounted() {
   },
   methods: {
-    throwCard(card) {
+    throwCards() {
+      for (var card in this.cards) {
+        if (card === this.cards.length) {
+          this.throwCard(this.cards[card], false)
+        } else {
+          this.throwCard(this.cards[card])
+        }
+      }
+    },
+    throwCard(card, emit = true) {
       this.$axios.post(`players/${this.player.id}/cards/throw`, {secret: this.secret, card_id: card.id}).then((response) => {
-        this.$emit('card-threw')
+        if (emit === true) {
+          this.$emit('card-threw')
+        }
       })
     },
     retrieveCard(card) {
