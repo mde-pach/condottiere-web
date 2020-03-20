@@ -18,10 +18,10 @@
     <vue-context ref="menu">
       <template slot-scope="child" v-if="child.data">
         <li>
-          <vs-button  color="primary" type="flat"icon="keyboard_arrow_left" @click.prevent="retrieveCard(child.data.card)">Recuperer {{ child.data.card.name }}</vs-button>
+          <vs-button :disabled="userBoardId != board.id" color="primary" type="flat"icon="keyboard_arrow_left" @click.prevent="retrieveCard(child.data.card)">Recuperer {{ child.data.card.name }}</vs-button>
         </li>
         <li>
-          <vs-button  color="danger" type="flat" icon="delete" @click.prevent="throwCard(child.data.card)">Defausser {{ child.data.card.name }}</vs-button>
+          <vs-button :disabled="userBoardId != board.id" color="danger" type="flat" icon="delete" @click.prevent="throwCard(child.data.card)">Defausser {{ child.data.card.name }}</vs-button>
         </li>
       </template>
     </vue-context>
@@ -38,7 +38,8 @@ export default {
     cards: Array,
     player: Object,
     secret: String,
-    board: Object
+    board: Object,
+    userBoardId: Number
   },
   components: {
     Swiper,

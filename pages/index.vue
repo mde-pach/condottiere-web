@@ -4,7 +4,7 @@
       
     </div>
       <template v-for="board in boards">
-        <board :board="board" :player="getPlayerFromBoard(board)" :cards="board.cards" :secret="secret" @card-retrieved="updateGame()" @card-threw="updateGame()"/>
+        <board :user-board-id="boardId" :board="board" :player="getPlayerFromBoard(board)" :cards="board.cards" :secret="secret" @card-retrieved="updateGame()" @card-threw="updateGame()"/>
       </template>
     </div>
     <footer class="hand-footer">
