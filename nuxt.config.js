@@ -49,7 +49,7 @@ export default {
   ** See https://axios.nuxtjs.org/options
   */
   axios: {
-    baseURL: "http://localhost:5000"
+    baseURL: "https://condottiere-core.herokuapp.com/"
   },
   /*
   ** Build configuration
