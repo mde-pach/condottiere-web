@@ -59,7 +59,7 @@ export default {
         message: this.secret,
         confirmText: 'Bien retenu !'
       })  
-      this.updateGameInterval = setInterval(this.updateGame, 5000)
+      this.updateGameInterval = setInterval(this.updateGame, 1000)
     } else {
       this.isModalActive = true // TODO make it true
     }
@@ -91,7 +91,7 @@ export default {
         this.$store.commit('secret/set', this.secret)
         this.isModalActive = false
         this.updateGame()
-        this.updateGameInterval = setInterval(this.updateGame, 5000)
+        this.updateGameInterval = setInterval(this.updateGame, 1000)
       }).catch((error) => {
         this.$vs.notify({
           title: 'Erreur',
