@@ -12,6 +12,7 @@
         <vs-button ref="resetDeckButton" class="vs-con-loading__container" color="warning" type="flat" icon="refresh" @click="resetDeck()">Reinitialiser le deck</vs-button>
       </vs-sidebar-group>
       <vs-sidebar-group title="Joueurs" open>
+        <vs-button color="primary" type="flat" icon="account_circle" @click="playerLogin()">Connexion</vs-button>
         <vs-button color="primary" type="flat" icon="add" @click="openNewPlayerInterface()">Nouveau joueur</vs-button>
         <vs-button color="primary" type="flat" icon="list" @click="">Liste des joueurs</vs-button>
         <vs-button ref="deletePlayersButton" class="vs-con-loading__container" color="danger" type="flat" icon="delete" @click="deletePlayers()">Supprimer les joueurs</vs-button>
@@ -57,6 +58,24 @@
         </footer>
       </div>
     </b-modal>
+    <b-modal :active.sync="isConnectionModalActive" has-modal-card trap-focus aria-role="dialog" aria-modal>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Connexion</p>
+          </header>
+          <section class="modal-card-body">
+            <b-field label="Votre nom">
+              <b-input v-model="name" required></b-input>
+            </b-field>
+            <b-field label="Votre token secret">
+              <b-input v-model="secret" required></b-input>
+            </b-field>
+          </section>
+          <footer class="modal-card-foot">
+            <b-button type="is-primary" @click="checkSecret()">Ok</b-button>
+          </footer>
+        </div>
+      </b-modal>
   </div>
 </template>
 
@@ -69,8 +88,11 @@ export default {
       sideBarActive: false,
       isNewPlayerModalActive: false,
       isDistributeModalActive: false,
+      isConnectionModalActive: false,
       name: '',
-      players: []
+      secret: '',
+      players: [],
+      playerId: undefined
     }
   },
   components: {
@@ -82,10 +104,8 @@ export default {
     },
     createPlayer() {
       this.$axios.post('/players', {name: this.name}).then((response) => {
-        this.$store.commit('secret/set', response.data.secret)
-        this.$router.push({
-          path: `${response.data.name}`
-        })
+        this.secret = response.data.secret
+        this.playerId = response.data.id
         this.$axios.post('boards', {player_id: response.data.id}).then((response) => {
           this.$vs.notify({
             title: 'Succes',
@@ -93,6 +113,14 @@ export default {
             color: 'success',
             position: 'top-center',
             icon:'done'
+          })
+          this.$store.commit('secret/set', this.secret)
+          this.$store.commit('user/setId', this.playerId)
+          this.$store.commit('user/setName', this.name)
+          this.$buefy.dialog.alert({
+            title: 'Votre token secret (conservez le bien)',
+            message: this.secret,
+            confirmText: 'Bien retenu !'
           })
         }).catch((error) => {
           this.$vs.notify({
@@ -114,6 +142,10 @@ export default {
       }).finally(() => {
         this.isNewPlayerModalActive = false
       })
+    },
+    playerLogin() {
+      this.sideBarActive = false
+      this.isConnectionModalActive = true
     },
     openDistributeInterface() {
       this.sideBarActive = false
@@ -237,6 +269,48 @@ export default {
           icon:'error'
         })
         this.$vs.loading.close(this.$refs.deletePlayersButton.$el)
+      })
+    },
+    checkSecret() {
+      this.isConnectionModalActive = false
+      this.$axios.get('players').then((response) => {
+        for (var playerId in response.data) {
+          if (response.data[playerId].name === this.name) {
+            this.$store.commit('user/setId', Number(playerId))
+          }
+        }
+        if (this.$store.state.user.id === undefined) {
+          this.$vs.notify({
+            title: 'Erreur',
+            text: 'Votre nom est incorrect',
+            color: 'danger',
+            position: 'top-center',
+            icon:'error'
+          })
+          return
+        }
+        this.$axios.post(`players/${this.$store.state.user.id}/auth`, {secret: this.secret}).then((response) => {
+          this.$vs.notify({
+            title: 'Succes',
+            text: 'Votre token est correct !',
+            color: 'success',
+            position: 'top-center',
+            icon:'done'
+          })
+          this.$store.commit('secret/set', this.secret)
+          this.$store.commit('user/setName', this.name)
+          this.isModalActive = false
+          // this.updateGame()
+          // this.updateGameInterval = setInterval(this.updateGame, 1000)
+        }).catch((error) => {
+          this.$vs.notify({
+            title: 'Erreur',
+            text: 'Votre token est incorrect',
+            color: 'danger',
+            position: 'top-center',
+            icon:'error'
+          })
+        })
       })
     }
   }
