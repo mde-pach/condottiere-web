@@ -10,7 +10,7 @@
     </div>
     <div class="column">
       <swiper ref="mySwiper" :options="swiperOptions">
-        <template v-for="card in cards">
+        <template v-for="card in player.board">
           <swiper-slide>
             <img @contextmenu.prevent="$refs.cardMenu.open($event, { card: card })" class="game-card" :src="`/${card.name}.jpg`" />
           </swiper-slide>
@@ -20,17 +20,17 @@
     <vue-context ref="cardMenu">
       <template slot-scope="child" v-if="child.data">
         <li>
-          <vs-button :disabled="userBoardId != board.id" color="primary" type="flat"icon="keyboard_arrow_left" @click.prevent="retrieveCard(child.data.card)">Recuperer {{ child.data.card.name }}</vs-button>
+          <vs-button :disabled="$store.state.player.current.id != player.id" color="primary" type="flat"icon="keyboard_arrow_left" @click.prevent="retrieveCard(child.data.card)">Recuperer {{ child.data.card.name }}</vs-button>
         </li>
         <li>
-          <vs-button :disabled="userBoardId != board.id" color="danger" type="flat" icon="delete" @click.prevent="throwCard(child.data.card)">Defausser {{ child.data.card.name }}</vs-button>
+          <vs-button :disabled="$store.state.player.current.id != player.id" color="danger" type="flat" icon="delete" @click.prevent="throwCard(child.data.card)">Defausser {{ child.data.card.name }}</vs-button>
         </li>
       </template>
     </vue-context>
     <vue-context ref="boardMenu">
       <template slot-scope="child">
         <li>
-          <vs-button :disabled="userBoardId != board.id" color="danger" type="flat" icon="delete" @click.prevent="throwCards()">Defausser toutes les cartes</vs-button>
+          <vs-button :disabled="$store.state.player.current.id != player.id" color="danger" type="flat" icon="delete" @click.prevent="throwCards()">Defausser toutes les cartes</vs-button>
         </li>
       </template>
     </vue-context>
@@ -44,11 +44,7 @@ import { VueContext } from 'vue-context';
 
 export default {
   props: {
-    cards: Array,
     player: Object,
-    secret: String,
-    board: Object,
-    userBoardId: Number
   },
   components: {
     Swiper,
@@ -67,28 +63,21 @@ export default {
   },
   methods: {
     throwCards() {
-      for (var card in this.cards) {
-        if (card === this.cards.length) {
-          this.throwCard(this.cards[card], false)
-        } else {
-          this.throwCard(this.cards[card])
-        }
+      for (var card of this.player.board) {
+        this.$axios.patch(`players/${this.player.id}/cards/${card.id}`, {belongs_to_player: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}})
       }
+      this.$emit('card-threw')
     },
     throwCard(card, emit = true) {
-      this.$axios.post(`players/${this.player.id}/cards/throw`, {secret: this.secret, card_id: card.id}).then((response) => {
-        if (emit === true) {
-          this.$emit('card-threw')
-        }
+      this.$axios.patch(`players/${this.player.id}/cards/${card.id}`, {belongs_to_player: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}}).then((response) => {
+        this.$emit('card-threw')
       })
     },
     retrieveCard(card) {
-      this.$axios.post(`boards/${this.board.id}/get`, {secret: this.secret, card_id: card.id}).then((response) => {
+      this.$axios.patch(`players/${this.player.id}/cards/${card.id}`, {board: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}}).then((response) => {
         this.$emit('card-retrieved')
       })
     }
-  },
-  computed: {
   }
 }
 </script>

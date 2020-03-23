@@ -21,7 +21,9 @@
     "vue-awesome-swiper": "^4.0.0-rc.0",
     "vue-context": "^5.1.0",
     "vue-coverflow": "^2.2.0",
+    "vue-native-websocket": "^2.0.14",
     "vue-navigation-bar": "^2.0.0",
+    "vue-socket.io": "^3.0.7",
     "vuesax": "^3.11.13"
   },
   "devDependencies": {}

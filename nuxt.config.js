@@ -28,7 +28,8 @@ export default {
   ** Plugins to load before mounting the App
   */
   plugins: [
-    '~/plugins/vuesax'
+    '~/plugins/vuesax',
+    '~/plugins/websocket'
   ],
   /*
   ** Nuxt.js dev-modules

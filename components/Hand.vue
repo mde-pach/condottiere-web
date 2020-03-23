@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div v-if="$store.state.player.current">
     <swiper ref="mySwiper" :options="swiperOptions">
-      <template v-for="card in cards">
+      <template v-for="card in $store.state.player.current.hand">
         <swiper-slide>
           <img @contextmenu.prevent="$refs.menu.open($event, { card: card })" class="game-card" :src="`/${card.name}.jpg`"/>
         </swiper-slide>
@@ -27,12 +27,6 @@ import { VueContext } from 'vue-context';
 import 'vue-context/src/sass/vue-context.scss';
 
 export default {
-  props: {
-    cards: Array,
-    boardId: Number,
-    playerId: Number,
-    secret: String
-  },
   components: {
     Swiper,
     SwiperSlide,
@@ -40,7 +34,6 @@ export default {
   },
   data() {
     return {
-      selectedCard: null,
       swiperOptions: {
         slidesPerView: 15,
         spaceBetween: 5,
@@ -48,33 +41,17 @@ export default {
     }
   },
   methods: {
-    onRightClick (event, text) {
-      alert(`You clicked "${text}"!`);
-    },
-    selectCard(card) {
-      this.$buefy.dialog.confirm({
-        message: `Jouer la carte ${card.name} ?`,
-        onConfirm: () => {
-          this.$buefy.toast.open('User confirmed')
-        }
-      })
-    },
     playCard(card) {
-      this.$axios.post(`boards/${this.boardId}/put`, {secret: this.secret, card_id: card.id}).then((response) => {
+      this.$axios.patch(`players/${this.$store.state.player.current.id}/cards/${card.id}`, {board: true}, {headers: {'X-Secret-Token': this.$store.state.secret.token}}).then((response) => {
         this.$emit('card-played')
       })
     },
     throwCard(card) {
-      this.$axios.post(`players/${this.playerId}/cards/throw`, {secret: this.secret, card_id: card.id}).then((response) => {
+      this.$axios.patch(`players/${this.$store.state.player.current.id}/cards/${card.id}`, {belongs_to_player: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}}).then((response) => {
         this.$emit('card-threw')
       })
     }
   },
-  computed: {
-    cardList() {
-      return this.cards.map((card) => {return {title: card.name, cover: ''}} )
-    }
-  }
 }
 </script>
 

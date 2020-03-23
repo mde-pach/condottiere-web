@@ -7,15 +7,14 @@
         </h2>
       </div>
       <vs-sidebar-group title="Deck" open>
-        <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface()">Distribuer des cartes</vs-button>
+        <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface()" :disabled="$store.state.secret.token === null">Distribuer des cartes</vs-button>
         <vs-button ref="shuffleDeckButton" class="vs-con-loading__container" color="primary" type="flat" icon="shuffle" @click="shuffleDeck()">Melanger le deck</vs-button>
         <vs-button ref="resetDeckButton" class="vs-con-loading__container" color="warning" type="flat" icon="refresh" @click="resetDeck()">Reinitialiser le deck</vs-button>
       </vs-sidebar-group>
       <vs-sidebar-group title="Joueurs" open>
         <vs-button color="primary" type="flat" icon="account_circle" @click="playerLogin()">Connexion</vs-button>
         <vs-button color="primary" type="flat" icon="add" @click="openNewPlayerInterface()">Nouveau joueur</vs-button>
-        <vs-button color="primary" type="flat" icon="list" @click="">Liste des joueurs</vs-button>
-        <vs-button ref="deletePlayersButton" class="vs-con-loading__container" color="danger" type="flat" icon="delete" @click="deletePlayers()">Supprimer les joueurs</vs-button>
+        <vs-button color="primary" type="flat" icon="list" @click="openListPlayerInterface()">Liste des joueurs</vs-button>
       </vs-sidebar-group>
     </vs-sidebar>
     <vs-navbar class="nabarx" color="#ffffff">
@@ -25,147 +24,82 @@
         </vs-navbar-title>
       </div>
     </vs-navbar>
-    <b-modal :active.sync="isNewPlayerModalActive" has-modal-card trap-focus aria-role="dialog" aria-modal>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Nouveau joueur</p>
-        </header>
-        <section class="modal-card-body">
-          <b-field label="Name">
-            <b-input v-model="name"></b-input>
-          </b-field>
-        </section>
-        <footer class="modal-card-foot">
-          <b-button type="is-danger" @click="isNewPlayerModalActive = false">Annuler</b-button>
-          <b-button type="is-primary" @click="createPlayer()">C'est parti</b-button>
-        </footer>
-      </div>
-    </b-modal>
-    <b-modal :active.sync="isDistributeModalActive" has-modal-card trap-focus aria-role="dialog" aria-modal>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Distribuer</p>
-        </header>
-        <section class="modal-card-body">
-          <template v-for="(player, index) in players">
-            <b-field :label="player.name">
-              <b-numberinput type="is-primary" min="0" max="15" v-model="player.cardToDistribute"></b-numberinput>
-            </b-field>  
-          </template>
-        </section>
-        <footer class="modal-card-foot">
-          <b-button type="is-primary" @click="distributeCard()">Go</b-button>
-        </footer>
-      </div>
-    </b-modal>
-    <b-modal :active.sync="isConnectionModalActive" has-modal-card trap-focus aria-role="dialog" aria-modal>
-        <div class="modal-card">
-          <header class="modal-card-head">
-            <p class="modal-card-title">Connexion</p>
-          </header>
-          <section class="modal-card-body">
-            <b-field label="Votre nom">
-              <b-input v-model="name" required></b-input>
-            </b-field>
-            <b-field label="Votre token secret">
-              <b-input v-model="secret" required></b-input>
-            </b-field>
-          </section>
-          <footer class="modal-card-foot">
-            <b-button type="is-primary" @click="checkSecret()">Ok</b-button>
-          </footer>
-        </div>
-      </b-modal>
   </div>
 </template>
 
 <script>
+import ConnectionModal from '~/components/ConnectionModal'
+import DistributionModal from '~/components/DistributionModal'
+import PlayerListModal from '~/components/PlayerListModal'
+import NewPlayerModal from '~/components/NewPlayerModal'
+
 export default {
   props: {
   },
   data () {
     return {
-      sideBarActive: false,
-      isNewPlayerModalActive: false,
-      isDistributeModalActive: false,
-      isConnectionModalActive: false,
-      name: '',
-      secret: '',
-      players: [],
-      playerId: undefined
+      sideBarActive: false
     }
   },
   components: {
+    ConnectionModal,
+    DistributionModal,
+    PlayerListModal,
+    NewPlayerModal
   },
   methods: {
+    sendUpdate(message = "update") {
+      this.$socket.send(message)
+    },
+    sendNotification(title, body, color = 'success', icon = 'done', duration = 4000) {
+      this.$vs.notify({
+        title: title,
+        text: body,
+        color: color,
+        position: 'top-center',
+        icon: icon,
+        time: duration
+      })
+    },
     openNewPlayerInterface() {
       this.sideBarActive = false
-      this.isNewPlayerModalActive = true
+      this.$buefy.modal.open({
+        parent: this,
+        component: NewPlayerModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
+      })
     },
-    createPlayer() {
-      this.$axios.post('/players', {name: this.name}).then((response) => {
-        this.secret = response.data.secret
-        this.playerId = response.data.id
-        this.$axios.post('boards', {player_id: response.data.id}).then((response) => {
-          this.$vs.notify({
-            title: 'Succes',
-            text: 'Nouveau joueur cree !',
-            color: 'success',
-            position: 'top-center',
-            icon:'done'
-          })
-          this.$store.commit('secret/set', this.secret)
-          this.$store.commit('user/setId', this.playerId)
-          this.$store.commit('user/setName', this.name)
-          this.$buefy.dialog.alert({
-            title: 'Votre token secret (conservez le bien)',
-            message: this.secret,
-            confirmText: 'Bien retenu !'
-          })
-        }).catch((error) => {
-          this.$vs.notify({
-            title: 'Erreur',
-            text: 'Une erreur est survenue lors de la creation de votre plateau de jeu',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
-        })
-      }).catch((error) => {
-        this.$vs.notify({
-            title: 'Erreur',
-            text: 'Le nom que vous avez choisi est incorrect ou deja pris',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
-      }).finally(() => {
-        this.isNewPlayerModalActive = false
+    openListPlayerInterface() {
+      this.sideBarActive = false
+      this.$buefy.modal.open({
+        parent: this,
+        component: PlayerListModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
       })
     },
     playerLogin() {
       this.sideBarActive = false
-      this.isConnectionModalActive = true
+      this.$buefy.modal.open({
+        parent: this,
+        component: ConnectionModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
+      })
     },
     openDistributeInterface() {
       this.sideBarActive = false
-      this.$axios.get('players').then((response) => {
-        this.players = Object.values(response.data)
-        this.isDistributeModalActive = true
+      this.$buefy.modal.open({
+        parent: this,
+        component: DistributionModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
       })
-    },
-    async distributeCard() {
-      var cardToDistribute = this.players.reduce((a, b) => {return a + (b.cardToDistribute ? b.cardToDistribute : 0)}, 0)
-      while (cardToDistribute > 0) {
-        for (var player in this.players) {
-          if (this.players[player].cardToDistribute > 0) {
-            await this.$axios.post(`deck/pick/${this.players[player].id}`, {card_number: 1})
-            this.players[player].cardToDistribute--
-            cardToDistribute--
-          }
-        }
-      }
-      this.isDistributeModalActive = false
     },
     shuffleDeck() {
       this.$vs.loading({
@@ -174,23 +108,11 @@ export default {
         container: this.$refs.shuffleDeckButton.$el,
         scale: 0.45
       })
-      this.$axios.get('deck/shuffle').then((response) => {
-        this.$vs.notify({
-          title: 'Succes',
-          text: 'Le deck a ete correctement melange !',
-          color: 'success',
-          position: 'top-center',
-          icon:'done'
-        })
-        this.$vs.loading.close(this.$refs.shuffleDeckButton.$el)        
+      this.$axios.post('deck/shuffle').then((response) => {
+        this.sendNotification('Succes', 'Le deck a ete correctement melange !')
       }).catch((error) => {
-        this.$vs.notify({
-          title: 'Erreur',
-          text: 'Une erreur est survenue durant le melange du deck',
-          color: 'danger',
-          position: 'top-center',
-          icon:'error'
-        })
+        this.sendNotification('Erreur', 'Une erreur est survenue durant le melange du deck', 'danger', 'error')
+      }).finally(() => {
         this.$vs.loading.close(this.$refs.shuffleDeckButton.$el)        
       })
     },
@@ -203,114 +125,16 @@ export default {
       })
       this.$axios.delete('deck').then((response) => {
         this.$axios.post('deck').then((response) => {
-          this.$vs.notify({
-            title: 'Succes',
-            text: 'Le deck a bien ete remis a zero !',
-            color: 'success',
-            position: 'top-center',
-            icon:'done'
-          })  
-          this.$vs.loading.close(this.$refs.resetDeckButton.$el)
+          this.sendNotification('Succes', 'Le deck a bien ete remis a zero !')
+          this.sendUpdate()
         }).catch((error) => {
-          this.$vs.notify({
-            title: 'Erreur',
-            text: 'Une erreur est survenue durant la creation du deck',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
+          this.sendNotification('Erreur', 'Une erreur est survenue durant la creation du deck', 'danger', 'error')
+        }).finally(() => {
           this.$vs.loading.close(this.$refs.resetDeckButton.$el)
         })
       }).catch((error) => {
-        this.$vs.notify({
-          title: 'Erreur',
-          text: 'Une erreur est survenue durant la suppression du deck',
-          color: 'danger',
-          position: 'top-center',
-          icon:'error'
-        })
+        this.sendNotification('Erreur', 'Une erreur est survenue durant la suppression du deck', 'danger', 'error')
         this.$vs.loading.close(this.$refs.resetDeckButton.$el)
-      })
-    },
-    deletePlayers() {
-      this.$vs.loading({
-        background: 'danger',
-        color: '#ffffff',
-        container: this.$refs.deletePlayersButton.$el,
-        scale: 0.45
-      })
-      this.$axios.delete('players').then((response) => {
-        this.$axios.delete('boards').then((response) => {
-          this.$vs.notify({
-            title: 'Succes',
-            text: 'Les joueurs ont bien ete supprimes',
-            color: 'success',
-            position: 'top-center',
-            icon:'done'
-          })
-          this.$vs.loading.close(this.$refs.deletePlayersButton.$el)
-        }).catch((error) => {
-          this.$vs.notify({
-            title: 'Erreur',
-            text: 'Une erreur est survenue durant la suppression des plateaux de jeux',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
-          this.$vs.loading.close(this.$refs.deletePlayersButton.$el)
-        })
-        this.$vs.loading.close(this.$refs.deletePlayersButton.$el)
-      }).catch((error) => {
-        this.$vs.notify({
-          title: 'Erreur',
-          text: 'Une erreur est survenue durant la suppression des joueurs',
-          color: 'danger',
-          position: 'top-center',
-          icon:'error'
-        })
-        this.$vs.loading.close(this.$refs.deletePlayersButton.$el)
-      })
-    },
-    checkSecret() {
-      this.isConnectionModalActive = false
-      this.$axios.get('players').then((response) => {
-        for (var playerId in response.data) {
-          if (response.data[playerId].name === this.name) {
-            this.$store.commit('user/setId', Number(playerId))
-          }
-        }
-        if (this.$store.state.user.id === undefined) {
-          this.$vs.notify({
-            title: 'Erreur',
-            text: 'Votre nom est incorrect',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
-          return
-        }
-        this.$axios.post(`players/${this.$store.state.user.id}/auth`, {secret: this.secret}).then((response) => {
-          this.$vs.notify({
-            title: 'Succes',
-            text: 'Votre token est correct !',
-            color: 'success',
-            position: 'top-center',
-            icon:'done'
-          })
-          this.$store.commit('secret/set', this.secret)
-          this.$store.commit('user/setName', this.name)
-          this.isModalActive = false
-          // this.updateGame()
-          // this.updateGameInterval = setInterval(this.updateGame, 1000)
-        }).catch((error) => {
-          this.$vs.notify({
-            title: 'Erreur',
-            text: 'Votre token est incorrect',
-            color: 'danger',
-            position: 'top-center',
-            icon:'error'
-          })
-        })
       })
     }
   }

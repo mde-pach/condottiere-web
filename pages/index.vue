@@ -1,14 +1,12 @@
 <template>
   <section class="section">
     <div class="board">
-      
-    </div>
-      <template v-for="board in boards">
-        <board :user-board-id="boardId" :board="board" :player="getPlayerFromBoard(board)" :cards="board.cards" :secret="secret" @card-retrieved="updateGame()" @card-threw="updateGame()"/>
+      <template v-for="player in $store.state.player.list">
+        <board :player="player" @card-retrieved="sendUpdate()" @card-threw="sendUpdate()"/>
       </template>
     </div>
     <footer class="hand-footer">
-      <hand v-if="secret" :secret="secret" :cards="hand" :board-id="boardId" :player-id="playerId" @card-played="updateGame()" @card-threw="updateGame()"/>
+      <hand @card-played="sendUpdate()" @card-threw="sendUpdate()"/>
     </footer>
   </section>
 </template>
@@ -24,66 +22,57 @@ export default {
   },
   data() {
     return {
-      hand: [],
-      players: [],
-      boards: [],
-      name: '',
-      playerId: 0,
-      boardId: 0,
+      playerData: {},
       secret: undefined,
-      updateGameInterval: undefined,
+      socket: null
     }
   },
   watch: {
     playerName() {
       this.secret = this.$store.state.secret.token
-      this.name = this.$store.state.user.name
-      this.playerId = this.$store.state.user.id
-      this.updateGameInterval = setInterval(this.updateGame, 1000)
-      this.getBoards()
+    }
+  },
+  mounted() {
+    this.updateGame()
+    this.$options.sockets.onmessage = (messageEvent) => {
+      this.updateGame()
+      if (messageEvent.data != 'update') {
+        this.sendNotification('Information', messageEvent.data, 'primary', 'info', 5000)
+      }
     }
   },
   methods: {
+    sendUpdate(message = "update") {
+      this.$socket.send(message)
+    },
+    sendNotification(title, body, color = 'success', icon = 'done', duration = 4000) {
+      this.$vs.notify({
+        title: title,
+        text: body,
+        color: color,
+        position: 'top-center',
+        icon: icon,
+        time: duration
+      })
+    },
     updateGame() {
-      this.getMyCards()
-      this.updateBoards()
+      this.getMyPlayerData()
       this.updatePlayers()
     },
-    getMyCards() {
-      if (this.playerId != undefined) {
-        this.$axios.get(`players/${this.playerId}/cards`, {headers: {'x-secret-token': this.secret}}).then((response) => {
-          this.hand = response.data
+    getMyPlayerData() {
+      if (this.$store.state.secret.token !== null) {
+        this.$axios.get('players/me', {headers: {'X-Secret-Token': this.$store.state.secret.token}}).then((response) => {
+          this.$store.commit('player/setCurrent', response.data)
         }).catch((error) => {
-          clearInterval(this.updateGameInterval)
-        })  
+          this.$store.commit('secret/set', null)
+          this.sendNotification('Erreur', 'Token incorrecte', 'danger', 'error')
+        })
       }
-    },
-    getBoards() {
-      this.$axios.get('boards').then((response) => {
-        this.boards = []
-        for (var boardId in response.data) {
-          if (response.data[boardId].player == this.playerId) {
-            this.boardId = Number(boardId)
-          }
-        }
-      })
-    },
-    updateBoards() {
-      this.$axios.get('boards').then((response) => {
-        this.boards = response.data
-      })
     },
     updatePlayers() {
       this.$axios.get('players').then((response) => {
-        this.players = Object.values(response.data)
+        this.$store.commit('player/setList', response.data)
       })
-    },
-    getPlayerFromBoard(board) {
-      for (var player in this.players) {
-        if (this.players[player].id == board.player) {
-          return this.players[player]
-        }
-      }
     }
   },
   computed: {
