@@ -40,11 +40,13 @@ export default {
     connection() {
       this.isConnectionModalActive = false
       this.$axios.get('players/me', {headers: {'X-Secret-Token': this.secret}}).then((response) => {
-        this.$store.commit('user/setId', Number(response.data.id))
-        this.$store.commit('user/setName', Number(response.data.name))
+        this.$store.commit('player/setCurrent', response.data)
         this.$store.commit('secret/set', this.secret)
         this.sendNotification('Succes', `Bienvenue ${response.data.name} !`)
-        this.$parent.close()
+        this.$axios.get(`games/${this.$store.state.player.current.game_id}`).then((response) => {
+          this.$store.commit('game/set', response.data)
+          this.$parent.close()
+        })
       }).catch((error) => {
         this.sendNotification('Erreur', 'Votre token est incorrect', 'danger', 'error')
       })

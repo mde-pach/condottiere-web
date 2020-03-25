@@ -1,12 +1,12 @@
 <template>
   <section class="section">
     <div class="board">
-      <template v-for="player in $store.state.player.list">
+      <template v-for="player in $store.state.game.game.players">
         <board :player="player" @card-retrieved="sendUpdate()" @card-threw="sendUpdate()"/>
       </template>
     </div>
     <footer class="hand-footer">
-      <hand @card-played="sendUpdate()" @card-threw="sendUpdate()"/>
+      <hand @card-gived="sendUpdate()" @card-played="sendUpdate()" @card-threw="sendUpdate()"/>
     </footer>
   </section>
 </template>
@@ -33,9 +33,9 @@ export default {
     }
   },
   mounted() {
-    this.updateGame()
+    this.update()
     this.$options.sockets.onmessage = (messageEvent) => {
-      this.updateGame()
+      this.update()
       if (messageEvent.data != 'update') {
         this.sendNotification('Information', messageEvent.data, 'primary', 'info', 5000)
       }
@@ -55,9 +55,9 @@ export default {
         time: duration
       })
     },
-    updateGame() {
+    update() {
       this.getMyPlayerData()
-      this.updatePlayers()
+      this.updateGame()
     },
     getMyPlayerData() {
       if (this.$store.state.secret.token !== null) {
@@ -69,15 +69,19 @@ export default {
         })
       }
     },
-    updatePlayers() {
-      this.$axios.get('players').then((response) => {
-        this.$store.commit('player/setList', response.data)
-      })
+    updateGame() {
+      if (this.$store.state.game.game.id) {
+        this.$axios.get(`games/${this.$store.state.game.game.id}`).then((response) => {
+          this.$store.commit('game/set', response.data)
+        }).catch((error) => {
+          this.$store.commit('game/set', [])
+        })
+      }
     }
   },
   computed: {
     playerName() {
-      return this.$store.state.user.name
+      return this.$store.state.player.current.name
     }
   }
 }

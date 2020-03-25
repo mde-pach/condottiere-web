@@ -4,7 +4,7 @@
       <p class="modal-card-title">Liste des joueurs</p>
     </header>
     <section class="modal-card-body">
-      <b-table :data="$store.state.player.list">
+      <b-table :data="players">
         <template slot-scope="props">
           <b-table-column field="id" label="ID" width="40" numeric>
             {{ props.row.id }}
@@ -30,15 +30,20 @@ export default {
   },
   data() {
     return {
+      players: []
     }
   },
   mounted() {
     this.updatePlayers()
   },
   methods: {
+    sendUpdate(message = "update") {
+      this.$socket.send(message)
+    },
     updatePlayers() {
       this.$axios.get('players').then((response) => {
-        this.$store.commit('player/setList', response.data)
+        this.players = response.data
+        console.log(this.players)
       })
     },
     sendNotification(title, body, color = 'success', icon = 'done', duration = 4000) {
@@ -53,7 +58,12 @@ export default {
     },
     deletePlayer(player) {
       this.$axios.delete(`players/${player.id}`).then((response) => {
+        if (this.$store.state.player.current.id === player.id) {
+          this.$store.commit('secret/set', null)          
+          this.$store.commit('player/setCurrent', {})          
+        }
         this.updatePlayers()
+        this.sendUpdate()
       }).catch((error) => {
         this.sendNotification('Erreur', 'Une erreur est survenue durant la suppression du joueur', 'danger', 'error')
       })

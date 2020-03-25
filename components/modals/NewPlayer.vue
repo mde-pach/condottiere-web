@@ -23,7 +23,7 @@ export default {
   },
   data() {
     return {
-      name: this.$store.state.user.name
+      name: this.$store.state.player.current.name
     }
   },
   methods: {
@@ -44,8 +44,7 @@ export default {
       this.$axios.post('/players', {name: this.name}).then((response) => {
         this.sendUpdate(`Nouveau joueur: ${this.name}`)
         this.$store.commit('secret/set', response.data.secret)
-        this.$store.commit('user/setId', response.data.id)
-        this.$store.commit('user/setName', this.name)
+        this.$store.commit('player/setCurrent', response.data)
         this.$parent.close()
         this.$buefy.dialog.alert({
           title: 'Votre token secret (conservez le bien)',

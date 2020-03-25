@@ -12,7 +12,7 @@
       <swiper ref="mySwiper" :options="swiperOptions">
         <template v-for="card in player.board">
           <swiper-slide>
-            <img @contextmenu.prevent="$refs.cardMenu.open($event, { card: card })" class="game-card" :src="`/${card.name}.jpg`" />
+            <img @contextmenu.prevent="$refs.cardMenu.open($event, { card: card })" class="game-card" :src="`/${$store.state.game.game.name}/${card.name}.jpg`" />
           </swiper-slide>
         </template>
       </swiper>
@@ -62,9 +62,9 @@ export default {
   mounted() {
   },
   methods: {
-    throwCards() {
+    async throwCards() {
       for (var card of this.player.board) {
-        this.$axios.patch(`players/${this.player.id}/cards/${card.id}`, {belongs_to_player: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}})
+        await this.$axios.patch(`players/${this.player.id}/cards/${card.id}`, {belongs_to_player: false}, {headers: {'X-Secret-Token': this.$store.state.secret.token}})
       }
       this.$emit('card-threw')
     },

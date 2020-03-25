@@ -6,15 +6,20 @@
           Menu
         </h2>
       </div>
+      <vs-sidebar-group title="Jeux" open>
+        <vs-button color="primary" type="flat" icon="add" @click="openNewGameInterface()">Nouvelle partie</vs-button>
+        <vs-button color="primary" type="flat" icon="person_add" @click="openJoinGameInterface()" :disabled="$store.state.secret.token === null">Rejoindre partie</vs-button>
+        <vs-button color="primary" type="flat" icon="info" @click="openGameListInterface()">Info des parties</vs-button>
+      </vs-sidebar-group>
       <vs-sidebar-group title="Deck" open>
-        <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface()" :disabled="$store.state.secret.token === null">Distribuer des cartes</vs-button>
-        <vs-button ref="shuffleDeckButton" class="vs-con-loading__container" color="primary" type="flat" icon="shuffle" @click="shuffleDeck()">Melanger le deck</vs-button>
-        <vs-button ref="resetDeckButton" class="vs-con-loading__container" color="warning" type="flat" icon="refresh" @click="resetDeck()">Reinitialiser le deck</vs-button>
+        <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface()" :disabled="$store.state.player.current.game_id == null">Distribuer des cartes</vs-button>
+        <vs-button ref="shuffleDeckButton" class="vs-con-loading__container" color="primary" type="flat" icon="shuffle" @click="shuffleDeck()" :disabled="$store.state.player.current.game_id == null">Melanger le deck</vs-button>
+        <!-- <vs-button ref="resetDeckButton" class="vs-con-loading__container" color="warning" type="flat" icon="refresh" @click="resetDeck()">Reinitialiser le deck</vs-button> -->
       </vs-sidebar-group>
       <vs-sidebar-group title="Joueurs" open>
         <vs-button color="primary" type="flat" icon="account_circle" @click="playerLogin()">Connexion</vs-button>
         <vs-button color="primary" type="flat" icon="add" @click="openNewPlayerInterface()">Nouveau joueur</vs-button>
-        <vs-button color="primary" type="flat" icon="list" @click="openListPlayerInterface()">Liste des joueurs</vs-button>
+        <vs-button color="primary" type="flat" icon="info" @click="openListPlayerInterface()">Info des joueurs</vs-button>
       </vs-sidebar-group>
     </vs-sidebar>
     <vs-navbar class="nabarx" color="#ffffff">
@@ -28,10 +33,13 @@
 </template>
 
 <script>
-import ConnectionModal from '~/components/ConnectionModal'
-import DistributionModal from '~/components/DistributionModal'
-import PlayerListModal from '~/components/PlayerListModal'
-import NewPlayerModal from '~/components/NewPlayerModal'
+import ConnectionModal from '~/components/modals/Connection'
+import DistributionModal from '~/components/modals/Distribution'
+import PlayerListModal from '~/components/modals/PlayerList'
+import NewPlayerModal from '~/components/modals/NewPlayer'
+import NewGameModal from '~/components/modals/NewGame'
+import JoinGameModal from '~/components/modals/JoinGame'
+import GameListModal from '~/components/modals/GameList'
 
 export default {
   props: {
@@ -45,7 +53,9 @@ export default {
     ConnectionModal,
     DistributionModal,
     PlayerListModal,
-    NewPlayerModal
+    NewPlayerModal,
+    JoinGameModal,
+    GameListModal
   },
   methods: {
     sendUpdate(message = "update") {
@@ -101,6 +111,36 @@ export default {
         scroll: 'keep'
       })
     },
+    openNewGameInterface() {
+      this.sideBarActive = false
+      this.$buefy.modal.open({
+        parent: this,
+        component: NewGameModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
+      })
+    },
+    openJoinGameInterface() {
+      this.sideBarActive = false
+      this.$buefy.modal.open({
+        parent: this,
+        component: JoinGameModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
+      })
+    },
+    openGameListInterface() {
+      this.sideBarActive = false
+      this.$buefy.modal.open({
+        parent: this,
+        component: GameListModal,
+        hasModalCard: true,
+        trapFocus: true,
+        scroll: 'keep'
+      })
+    },
     shuffleDeck() {
       this.$vs.loading({
         background: 'blue',
@@ -108,7 +148,7 @@ export default {
         container: this.$refs.shuffleDeckButton.$el,
         scale: 0.45
       })
-      this.$axios.post('deck/shuffle').then((response) => {
+      this.$axios.post(`/decks/${this.$store.state.game.game.decks[0].id}/shuffle`).then((response) => {
         this.sendNotification('Succes', 'Le deck a ete correctement melange !')
       }).catch((error) => {
         this.sendNotification('Erreur', 'Une erreur est survenue durant le melange du deck', 'danger', 'error')
