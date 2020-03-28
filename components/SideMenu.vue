@@ -2,23 +2,42 @@
   <div>
     <vs-sidebar parent="body" color="primary" class="sidebarx" spacer v-model="sideBarActive">
       <div class="header-sidebar" slot="header">
-        <h2>
-          Menu
-        </h2>
+        <template v-if="$store.state.player.current.name">
+          <vs-row vs-type="flex" vs-justify="space-around">
+            <vs-avatar color="primary" :text="$store.state.player.current.name"/>
+          </vs-row>
+          <vs-row vs-type="flex" vs-justify="space-around">
+            <h2>{{ $store.state.player.current.name }}</h2>
+          </vs-row>
+        </template>
+        <template v-else>
+          <vs-row vs-type="flex" vs-justify="space-around">
+            <h2>Menu</h2>
+          </vs-row>
+        </template>
       </div>
       <vs-sidebar-group title="Jeux" open>
         <vs-button color="primary" type="flat" icon="add" @click="openNewGameInterface()">Nouvelle partie</vs-button>
         <vs-button color="primary" type="flat" icon="person_add" @click="openJoinGameInterface()" :disabled="$store.state.secret.token === null">Rejoindre partie</vs-button>
         <vs-button color="primary" type="flat" icon="info" @click="openGameListInterface()">Info des parties</vs-button>
       </vs-sidebar-group>
-      <vs-sidebar-group title="Deck" open>
-        <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface()" :disabled="$store.state.player.current.game_id == null">Distribuer des cartes</vs-button>
-        <vs-button ref="shuffleDeckButton" class="vs-con-loading__container" color="primary" type="flat" icon="shuffle" @click="shuffleDeck()" :disabled="$store.state.player.current.game_id == null">Melanger le deck</vs-button>
+      <vs-sidebar-group v-if="$store.state.player.current.game_id != null" title="Decks" open>
+        <template v-for="deck in $store.state.game.game.decks">
+          <vs-sidebar-group :title="deck.name">
+            <vs-button color="primary" type="flat" icon="pan_tool" @click="openDistributeInterface(deck)" :disabled="$store.state.player.current.game_id == null">Distribuer des cartes</vs-button>
+            <vs-button ref="shuffleDeckButton" class="vs-con-loading__container" color="primary" type="flat" icon="shuffle" @click="shuffleDeck(deck)" :disabled="$store.state.player.current.game_id == null">Melanger le deck</vs-button>
+          </vs-sidebar-group>
+        </template>
         <!-- <vs-button ref="resetDeckButton" class="vs-con-loading__container" color="warning" type="flat" icon="refresh" @click="resetDeck()">Reinitialiser le deck</vs-button> -->
       </vs-sidebar-group>
       <vs-sidebar-group title="Joueurs" open>
-        <vs-button color="primary" type="flat" icon="account_circle" @click="playerLogin()">Connexion</vs-button>
-        <vs-button color="primary" type="flat" icon="add" @click="openNewPlayerInterface()">Nouveau joueur</vs-button>
+        <template v-if="!$store.state.player.current.id">
+          <vs-button color="primary" type="flat" icon="account_circle" @click="playerLogin()">Connexion</vs-button>
+          <vs-button color="primary" type="flat" icon="add" @click="openNewPlayerInterface()">Inscription</vs-button>
+        </template>
+        <template v-else>
+          <vs-button color="danger" type="flat" icon="exit_to_app" @click="logout()">Deconnexion</vs-button>
+        </template>
         <vs-button color="primary" type="flat" icon="info" @click="openListPlayerInterface()">Info des joueurs</vs-button>
       </vs-sidebar-group>
     </vs-sidebar>
@@ -71,6 +90,13 @@ export default {
         time: duration
       })
     },
+    logout() {
+      this.$store.commit('player/setCurrent', {})
+      this.$store.commit('secret/set', null)
+      console.log(this.$store.state.player.current)
+      console.log(this.$store.state.secret.token)
+      this.sendUpdate()
+    },
     openNewPlayerInterface() {
       this.sideBarActive = false
       this.$buefy.modal.open({
@@ -101,13 +127,14 @@ export default {
         scroll: 'keep'
       })
     },
-    openDistributeInterface() {
+    openDistributeInterface(deck) {
       this.sideBarActive = false
       this.$buefy.modal.open({
         parent: this,
         component: DistributionModal,
         hasModalCard: true,
         trapFocus: true,
+        props: { deck },
         scroll: 'keep'
       })
     },
@@ -141,15 +168,16 @@ export default {
         scroll: 'keep'
       })
     },
-    shuffleDeck() {
+    shuffleDeck(deck) {
       this.$vs.loading({
         background: 'blue',
         color: '#ffffff',
         container: this.$refs.shuffleDeckButton.$el,
         scale: 0.45
       })
-      this.$axios.post(`/decks/${this.$store.state.game.game.decks[0].id}/shuffle`).then((response) => {
-        this.sendNotification('Succes', 'Le deck a ete correctement melange !')
+      this.$axios.post(`/decks/${deck.id}/shuffle`).then((response) => {
+        this.sendNotification('Succes', `Le deck ${deck.name} a ete correctement melange !`)
+        this.sendUpdate()
       }).catch((error) => {
         this.sendNotification('Erreur', 'Une erreur est survenue durant le melange du deck', 'danger', 'error')
       }).finally(() => {

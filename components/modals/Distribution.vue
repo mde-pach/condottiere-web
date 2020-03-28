@@ -1,14 +1,14 @@
 <template>
   <div class="modal-card">
     <header class="modal-card-head">
-      <p class="modal-card-title">Distribuer</p>
+      <p class="modal-card-title">Distribuer {{ deck.name }}</p>
     </header>
     <section class="modal-card-body">
       <div v-if="$store.state.player.list">
         <template v-for="(player, index) in $store.state.game.game.players">
           <b-field :label="player.name">
-            <b-numberinput type="is-primary" min="0" max="15" v-model="cardToDistribute[index]"></b-numberinput>
-          </b-field>  
+            <b-numberinput type="is-primary" min="0" :max="deck.count - totalCardToDistribute + (cardToDistribute[index] ? cardToDistribute[index] : 0)" v-model="cardToDistribute[index]"></b-numberinput>
+          </b-field>
         </template>
       </div>
     </section>
@@ -21,12 +21,13 @@
 <script>
 export default {
   props: {
+    deck: Object
   },
   components: {
   },
   data() {
     return {
-      cardToDistribute: []
+      cardToDistribute: [],
     }
   },
   mounted() {
@@ -47,23 +48,24 @@ export default {
     },
     async distributeCard() {
       if (this.$store.state.secret.token !== null) {
-        var cardNumberToDistribute = this.cardToDistribute.reduce((a, b) => {return a + b}, 0)
         var message = `${this.$store.state.player.current.name} distribue `
         for (var index in this.cardToDistribute) {
           message += `${this.cardToDistribute[index]} cartes pour ${this.$store.state.game.game.players[index].name}, `
         }
         distribute:
-        while (cardNumberToDistribute > 0) {
+        while (this.totalCardToDistribute > 0) {
           for (var index in this.cardToDistribute) {
             if (this.cardToDistribute[index] > 0) {
               try {
-                await this.$axios.post(`decks/${this.$store.state.game.game.decks[0].id}/distribute/${this.$store.state.game.game.players[index].id}`, {headers: {'X-Secret-Token': this.$store.state.secret.token}})
+                await this.$axios.post(`decks/${this.deck.id}/distribute/${this.$store.state.game.game.players[index].id}`, {headers: {'X-Secret-Token': this.$store.state.secret.token}})
               } catch(error) {
                 this.sendNotification('Erreur', 'Une erreur est survenue durant la distribution des cartes', 'danger', 'error')
                 break distribute
               }
-              this.cardToDistribute[index]--
-              cardNumberToDistribute--
+              this.$set(this.cardToDistribute, index, this.cardToDistribute[index] - 1)
+            }
+            else {
+              break distribute 
             }
           }
         }
@@ -75,6 +77,11 @@ export default {
       } 
     },
   },
+  computed: {
+    totalCardToDistribute() {
+      return this.cardToDistribute.reduce((a, b) => {return a + b}, 0)
+    }
+  }
 }
 </script>
 

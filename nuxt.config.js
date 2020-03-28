@@ -29,7 +29,8 @@ export default {
   */
   plugins: [
     '~/plugins/vuesax',
-    '~/plugins/websocket'
+    '~/plugins/websocket',
+    '~/plugins/vuex-persistence'
   ],
   /*
   ** Nuxt.js dev-modules
@@ -50,7 +51,7 @@ export default {
   ** See https://axios.nuxtjs.org/options
   */
   axios: {
-    baseURL: "https://condottiere-core.herokuapp.com/"
+    baseURL: "http://127.0.0.1:8000"
   },
   /*
   ** Build configuration

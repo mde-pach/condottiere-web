@@ -62,6 +62,7 @@ export default {
         this.sendNotification('Succes', `Vous avez rejoint la partie de ${game.session_name}: ${game.name}`)
         this.$axios.get(`games/${game.id}`).then((response) => {
           this.$store.commit('game/set', response.data)
+          this.$store.commit('player/setCurrent', {})
           this.sendUpdate()
           this.$parent.close()
         })

@@ -1,12 +1,12 @@
 <template>
   <section class="section">
     <div class="board">
-      <template v-for="player in $store.state.game.game.players">
-        <board :player="player" @card-retrieved="sendUpdate()" @card-threw="sendUpdate()"/>
+      <template v-for="player in players">
+        <board :key="`${player.id}-${player.game_id}`" :player="player" @update-board="sendUpdate()"/>
       </template>
     </div>
     <footer class="hand-footer">
-      <hand @card-gived="sendUpdate()" @card-played="sendUpdate()" @card-threw="sendUpdate()"/>
+      <hand @update-board="sendUpdate()"/>
     </footer>
   </section>
 </template>
@@ -67,21 +67,30 @@ export default {
           this.$store.commit('secret/set', null)
           this.sendNotification('Erreur', 'Token incorrecte', 'danger', 'error')
         })
+      } else {
+        this.$store.commit('player/setCurrent', {})
       }
     },
     updateGame() {
-      if (this.$store.state.game.game.id) {
-        this.$axios.get(`games/${this.$store.state.game.game.id}`).then((response) => {
-          this.$store.commit('game/set', response.data)
-        }).catch((error) => {
-          this.$store.commit('game/set', [])
-        })
+      if (this.$store.state.secret.token !== null) {
+        if (this.$store.state.game.game.id) {
+          this.$axios.get(`games/${this.$store.state.game.game.id}`).then((response) => {
+            this.$store.commit('game/set', response.data)
+          }).catch((error) => {
+            this.$store.commit('game/set', [])
+          })
+        }
+      } else {
+        this.$store.commit('game/set', [])    
       }
     }
   },
   computed: {
     playerName() {
       return this.$store.state.player.current.name
+    },
+    players() {
+      return this.$store.state.game.game.players
     }
   }
 }
@@ -97,5 +106,10 @@ export default {
   position: fixed;
   right: 0;
   z-index: 30;
+}
+
+.vs-button {
+  width: 100%;
+  justify-content: left;
 }
 </style>

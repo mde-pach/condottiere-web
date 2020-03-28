@@ -43,7 +43,6 @@ export default {
     updatePlayers() {
       this.$axios.get('players').then((response) => {
         this.players = response.data
-        console.log(this.players)
       })
     },
     sendNotification(title, body, color = 'success', icon = 'done', duration = 4000) {

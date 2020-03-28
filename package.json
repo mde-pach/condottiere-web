@@ -24,7 +24,8 @@
     "vue-native-websocket": "^2.0.14",
     "vue-navigation-bar": "^2.0.0",
     "vue-socket.io": "^3.0.7",
-    "vuesax": "^3.11.13"
+    "vuesax": "^3.11.13",
+    "vuex-persist": "^2.2.0"
   },
   "devDependencies": {}
 }

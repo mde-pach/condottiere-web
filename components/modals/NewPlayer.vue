@@ -4,7 +4,7 @@
       <p class="modal-card-title">Nouveau joueur</p>
     </header>
     <section class="modal-card-body">
-      <b-field label="Name">
+      <b-field label="Pseudo">
         <b-input v-model="name"></b-input>
       </b-field>
     </section>
